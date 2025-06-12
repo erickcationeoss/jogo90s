@@ -9,15 +9,27 @@
 <body>
     <div id="game-container">
         <div id="game-screen">
-            <div id="hud">Vidas: 3 | Pontos: 0</div>
+            <div id="hud">Vidas: 3 | Pontos: 0 | Batarangues: ∞</div>
             <div id="batman"></div>
-            <!-- Plataformas e inimigos serão adicionados via JavaScript -->
+            <!-- Elementos do jogo serão gerados via JavaScript -->
         </div>
+        
+        <!-- Tela de Início -->
         <div id="start-screen">
-            <h1>BATMAN</h1>
-            <h2>Retorno aos Anos 90</h2>
-            <p>Use as setas para mover e espaço para atirar batarangues</p>
+            <h1 id="start-title">BATMAN</h1>
+            <h2 id="start-subtitle">Retorno aos Anos 90</h2>
+            <div id="controls">
+                <p>← → : Mover | Espaço: Pular | F: Batarangue</p>
+                <p>Derrote os bandidos e salve Gotham!</p>
+            </div>
             <button id="start-button">INICIAR MISSÃO</button>
+        </div>
+        
+        <!-- Tela de Game Over -->
+        <div id="game-over-screen">
+            <h1 id="game-over-title">GAME OVER</h1>
+            <h2 id="final-score">Pontuação: 0</h2>
+            <button id="restart-button">JOGAR NOVAMENTE</button>
         </div>
     </div>
 

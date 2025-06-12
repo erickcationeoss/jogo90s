@@ -1,19 +1,25 @@
-// Configurações do jogo
+// CONFIGURAÇÕES DO JOGO
 const config = {
     gravity: 0.5,
-    batmanSpeed: 5,
-    jumpForce: 12,
-    batarangSpeed: 10
+    batmanSpeed: 6,
+    jumpForce: 14,
+    batarangSpeed: 12,
+    batarangCooldown: 500,
+    enemySpeed: 2.5,
+    spawnInterval: 3000
 };
 
-// Elementos do DOM
+// ELEMENTOS DO DOM
 const gameScreen = document.getElementById('game-screen');
 const batman = document.getElementById('batman');
 const hud = document.getElementById('hud');
 const startScreen = document.getElementById('start-screen');
 const startButton = document.getElementById('start-button');
+const gameOverScreen = document.getElementById('game-over-screen');
+const finalScore = document.getElementById('final-score');
+const restartButton = document.getElementById('restart-button');
 
-// Estado do jogo
+// ESTADO DO JOGO
 let gameState = {
     score: 0,
     lives: 3,
@@ -21,39 +27,100 @@ let gameState = {
     velocityY: 0,
     direction: 'right',
     batarangActive: false,
+    batarangCooldown: false,
     batarang: null,
     platforms: [],
+    buildings: [],
     enemies: [],
-    gameRunning: false
+    gameRunning: false,
+    spawnTimer: null,
+    batarangTrailInterval: null,
+    keys: {
+        left: false,
+        right: false,
+        jump: false,
+        shoot: false
+    }
 };
 
-// Inicializa o jogo
+// INICIALIZAÇÃO DO JOGO
 function initGame() {
+    // Reseta o estado do jogo
+    gameState = {
+        score: 0,
+        lives: 3,
+        isJumping: false,
+        velocityY: 0,
+        direction: 'right',
+        batarangActive: false,
+        batarangCooldown: false,
+        batarang: null,
+        platforms: [],
+        buildings: [],
+        enemies: [],
+        gameRunning: true,
+        spawnTimer: null,
+        batarangTrailInterval: null,
+        keys: {
+            left: false,
+            right: false,
+            jump: false,
+            shoot: false
+        }
+    };
+    
+    // Limpa a tela
+    while (gameScreen.firstChild) {
+        if (gameScreen.firstChild.id !== 'hud' && 
+            gameScreen.firstChild.id !== 'batman') {
+            gameScreen.removeChild(gameScreen.firstChild);
+        } else {
+            gameScreen.firstChild = gameScreen.firstChild.nextSibling;
+        }
+    }
+    
     // Posiciona o Batman
     batman.style.left = '100px';
     batman.style.top = '300px';
+    batman.className = '';
     
-    // Cria plataformas
-    createPlatform(0, 380, 800, 20); // Chão
+    // Cria cenário
+    createPlatform(0, 380, 800, 20); // Chão principal
+    
+    // Plataformas
     createPlatform(100, 300, 200, 20);
     createPlatform(400, 250, 150, 20);
     createPlatform(200, 200, 100, 20);
     createPlatform(600, 150, 150, 20);
+    createPlatform(50, 100, 100, 20);
     
-    // Cria inimigos
+    // Prédios no fundo
+    createBuilding(50, 100, 80, 280, 3);
+    createBuilding(300, 150, 120, 230, 4);
+    createBuilding(600, 80, 100, 300, 5);
+    
+    // Inimigos iniciais
     createEnemy(300, 340);
     createEnemy(500, 190);
     createEnemy(700, 100);
     
+    // Sistema de spawn de inimigos
+    gameState.spawnTimer = setInterval(() => {
+        if (gameState.gameRunning && gameState.enemies.length < 5) {
+            createEnemy(Math.random() > 0.5 ? 800 : -40, 
+                        Math.random() * 200 + 100);
+        }
+    }, config.spawnInterval);
+    
     // Atualiza HUD
     updateHUD();
     
-    // Esconde tela de início
+    // Esconde telas de menu/game over
     startScreen.style.display = 'none';
-    gameState.gameRunning = true;
+    gameOverScreen.style.display = 'none';
 }
 
-// Cria uma plataforma
+// CRIA ELEMENTOS DO JOGO
 function createPlatform(x, y, width, height) {
     const platform = document.createElement('div');
     platform.className = 'platform';
@@ -71,7 +138,27 @@ function createPlatform(x, y, width, height) {
     });
 }
 
-// Cria um inimigo
+function createBuilding(x, y, width, height, windows) {
+    const building = document.createElement('div');
+    building.className = 'building';
+    building.style.left = x + 'px';
+    building.style.top = y + 'px';
+    building.style.width = width + 'px';
+    building.style.height = height + 'px';
+    gameScreen.appendChild(building);
+    
+    // Adiciona janelas
+    for (let i = 0; i < windows; i++) {
+        const window = document.createElement('div');
+        window.className = 'window';
+        window.style.left = (x + 10 + (i * (width / windows))) + 'px';
+        window.style.top = (y + 20) + 'px';
+        gameScreen.appendChild(window);
+    }
+    
+    gameState.buildings.push(building);
+}
+
 function createEnemy(x, y) {
     const enemy = document.createElement('div');
     enemy.className = 'enemy';
@@ -85,21 +172,37 @@ function createEnemy(x, y) {
         y: y,
         width: 40,
         height: 40,
-        direction: Math.random() > 0.5 ? 1 : -1,
-        speed: 2
+        direction: x > 400 ? -1 : 1, // Direção baseada na posição
+        speed: config.enemySpeed + Math.random() * 1
     });
 }
 
-// Atualiza o HUD
+// ATUALIZA HUD
 function updateHUD() {
-    hud.textContent = `Vidas: ${gameState.lives} | Pontos: ${gameState.score}`;
+    hud.textContent = `Vidas: ${gameState.lives} | Pontos: ${gameState.score} | Batarangues: ∞`;
 }
 
-// Lógica de pulo e gravidade
+// FÍSICA DO JOGO
 function applyPhysics() {
     if (!gameState.gameRunning) return;
     
-    // Aplica gravidade
+    // Movimento horizontal
+    if (gameState.keys.left) {
+        const newLeft = parseInt(batman.style.left) - config.batmanSpeed;
+        if (newLeft > 0) {
+            batman.style.left = newLeft + 'px';
+            gameState.direction = 'left';
+        }
+    }
+    if (gameState.keys.right) {
+        const newLeft = parseInt(batman.style.left) + config.batmanSpeed;
+        if (newLeft < 750) {
+            batman.style.left = newLeft + 'px';
+            gameState.direction = 'right';
+        }
+    }
+    
+    // Gravidade e pulo
     gameState.velocityY += config.gravity;
     let newTop = parseInt(batman.style.top) + gameState.velocityY;
     batman.style.top = newTop + 'px';
@@ -115,11 +218,11 @@ function applyPhysics() {
     
     for (const platform of gameState.platforms) {
         if (checkCollision(batmanRect, platform)) {
-            // Colisão com plataforma - para a queda
             if (gameState.velocityY > 0 && batmanRect.y + batmanRect.height > platform.y) {
                 batman.style.top = (platform.y - batmanRect.height) + 'px';
                 gameState.velocityY = 0;
                 gameState.isJumping = false;
+                batman.classList.remove('jumping');
                 onGround = true;
             }
         }
@@ -133,13 +236,13 @@ function applyPhysics() {
     // Movimenta inimigos
     moveEnemies();
     
-    // Movimenta batarangue se estiver ativo
+    // Movimenta batarangue
     if (gameState.batarangActive) {
         moveBatarang();
     }
 }
 
-// Verifica colisão entre dois retângulos
+// VERIFICA COLISÃO
 function checkCollision(rect1, rect2) {
     return rect1.x < rect2.x + rect2.width &&
            rect1.x + rect1.width > rect2.x &&
@@ -147,7 +250,7 @@ function checkCollision(rect1, rect2) {
            rect1.y + rect1.height > rect2.y;
 }
 
-// Movimenta os inimigos
+// MOVIMENTAÇÃO DOS INIMIGOS
 function moveEnemies() {
     for (let i = 0; i < gameState.enemies.length; i++) {
         const enemy = gameState.enemies[i];
@@ -194,8 +297,8 @@ function moveEnemies() {
             const batarangRect = {
                 x: parseInt(gameState.batarang.style.left),
                 y: parseInt(gameState.batarang.style.top),
-                width: 20,
-                height: 10
+                width: 30,
+                height: 15
             };
             
             if (checkCollision(batarangRect, enemy)) {
@@ -208,19 +311,47 @@ function moveEnemies() {
                 updateHUD();
                 
                 // Remove batarangue
+                clearInterval(gameState.batarangTrailInterval);
                 gameScreen.removeChild(gameState.batarang);
                 gameState.batarangActive = false;
-                
-                // Cria novo inimigo após um tempo
-                setTimeout(() => {
-                    createEnemy(Math.random() * 700, 0);
-                }, 2000);
             }
         }
     }
 }
 
-// Movimenta o batarangue
+// BATARANGUE
+function shootBatarang() {
+    if (gameState.batarangActive || gameState.batarangCooldown) return;
+    
+    gameState.batarangActive = true;
+    
+    const batarang = document.createElement('div');
+    batarang.className = 'batarang';
+    
+    const startX = gameState.direction === 'right' ? 
+        parseInt(batman.style.left) + 50 : 
+        parseInt(batman.style.left) - 30;
+        
+    batarang.style.left = startX + 'px';
+    batarang.style.top = (parseInt(batman.style.top) + 35) + 'px';
+    
+    gameScreen.appendChild(batarang);
+    gameState.batarang = batarang;
+    
+    // Cria partículas de rastro
+    gameState.batarangTrailInterval = setInterval(() => {
+        if (gameState.batarangActive) {
+            createBatarangTrail();
+        }
+    }, 100);
+    
+    // Cooldown
+    gameState.batarangCooldown = true;
+    setTimeout(() => {
+        gameState.batarangCooldown = false;
+    }, config.batarangCooldown);
+}
+
 function moveBatarang() {
     const batarang = gameState.batarang;
     let newLeft = parseInt(batarang.style.left) + 
@@ -229,13 +360,36 @@ function moveBatarang() {
     batarang.style.left = newLeft + 'px';
     
     // Verifica se saiu da tela
-    if (newLeft < 0 || newLeft > 800) {
+    if (newLeft < -30 || newLeft > 830) {
+        clearInterval(gameState.batarangTrailInterval);
         gameScreen.removeChild(batarang);
         gameState.batarangActive = false;
     }
 }
 
-// Perde uma vida
+function createBatarangTrail() {
+    if (!gameState.batarang || !gameState.batarangActive) return;
+    
+    const trail = document.createElement('div');
+    trail.className = 'batarang-trail';
+    
+    const batarangRect = gameState.batarang.getBoundingClientRect();
+    const gameRect = gameScreen.getBoundingClientRect();
+    
+    trail.style.left = (batarangRect.left - gameRect.left) + 'px';
+    trail.style.top = (batarangRect.top - gameRect.top + 7) + 'px';
+    
+    gameScreen.appendChild(trail);
+    
+    // Remove a partícula após a animação
+    setTimeout(() => {
+        if (trail.parentNode) {
+            gameScreen.removeChild(trail);
+        }
+    }, 500);
+}
+
+// SISTEMA DE VIDAS E GAME OVER
 function loseLife() {
     gameState.lives--;
     updateHUD();
@@ -248,99 +402,62 @@ function loseLife() {
         batman.style.top = '300px';
         gameState.velocityY = 0;
         gameState.isJumping = false;
+        batman.classList.remove('jumping');
     }
 }
 
-// Game Over
 function gameOver() {
     gameState.gameRunning = false;
-    startScreen.style.display = 'flex';
-    startScreen.innerHTML = `
-        <h1>GAME OVER</h1>
-        <h2>Pontuação: ${gameState.score}</h2>
-        <button id="start-button">TENTAR NOVAMENTE</button>
-    `;
+    clearInterval(gameState.spawnTimer);
     
-    // Remove todos os elementos do jogo
-    while (gameScreen.firstChild) {
-        if (gameScreen.firstChild.id !== 'hud') {
-            gameScreen.removeChild(gameScreen.firstChild);
-        } else {
-            gameScreen.firstChild = gameScreen.firstChild.nextSibling;
-        }
+    if (gameState.batarangTrailInterval) {
+        clearInterval(gameState.batarangTrailInterval);
     }
     
-    // Adiciona o HUD de volta
-    gameScreen.appendChild(hud);
-    
-    // Configura o botão de reinício
-    document.getElementById('start-button').addEventListener('click', () => {
-        gameState = {
-            score: 0,
-            lives: 3,
-            isJumping: false,
-            velocityY: 0,
-            direction: 'right',
-            batarangActive: false,
-            batarang: null,
-            platforms: [],
-            enemies: [],
-            gameRunning: false
-        };
-        initGame();
-    });
+    finalScore.textContent = `Pontuação: ${gameState.score}`;
+    gameOverScreen.style.display = 'flex';
 }
 
-// Atira o batarangue
-function shootBatarang() {
-    gameState.batarangActive = true;
-    
-    const batarang = document.createElement('div');
-    batarang.className = 'batarang';
-    
-    const startX = gameState.direction === 'right' ? 
-        parseInt(batman.style.left) + 50 : 
-        parseInt(batman.style.left) - 20;
-        
-    batarang.style.left = startX + 'px';
-    batarang.style.top = (parseInt(batman.style.top) + 40) + 'px';
-    
-    gameScreen.appendChild(batarang);
-    gameState.batarang = batarang;
-}
-
-// Event listeners
-startButton.addEventListener('click', initGame);
-
+// CONTROLES
 document.addEventListener('keydown', (e) => {
     if (!gameState.gameRunning) return;
     
-    const currentLeft = parseInt(batman.style.left);
-    
     switch (e.key) {
         case 'ArrowLeft':
-            batman.style.left = (currentLeft - config.batmanSpeed) + 'px';
-            gameState.direction = 'left';
+            gameState.keys.left = true;
             break;
         case 'ArrowRight':
-            batman.style.left = (currentLeft + config.batmanSpeed) + 'px';
-            gameState.direction = 'right';
+            gameState.keys.right = true;
             break;
         case ' ':
             if (!gameState.isJumping) {
                 gameState.velocityY = -config.jumpForce;
                 gameState.isJumping = true;
+                batman.classList.add('jumping');
             }
             break;
         case 'f':
-            if (!gameState.batarangActive) {
-                shootBatarang();
-            }
+            shootBatarang();
             break;
     }
 });
 
-// Loop do jogo
+document.addEventListener('keyup', (e) => {
+    switch (e.key) {
+        case 'ArrowLeft':
+            gameState.keys.left = false;
+            break;
+        case 'ArrowRight':
+            gameState.keys.right = false;
+            break;
+    }
+});
+
+// EVENT LISTENERS
+startButton.addEventListener('click', initGame);
+restartButton.addEventListener('click', initGame);
+
+// LOOP PRINCIPAL
 function gameLoop() {
     if (gameState.gameRunning) {
         applyPhysics();
@@ -348,5 +465,5 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// Inicia o loop do jogo
+// INICIA O JOGO
 gameLoop();

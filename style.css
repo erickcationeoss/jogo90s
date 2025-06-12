@@ -1,9 +1,11 @@
+/* ESTILOS GERAIS */
 body {
     margin: 0;
     overflow: hidden;
     background-color: #000;
     image-rendering: pixelated;
     font-family: 'Courier New', monospace;
+    user-select: none;
 }
 
 #game-container {
@@ -20,8 +22,10 @@ body {
     width: 100%;
     height: 100%;
     background-color: #222;
+    position: relative;
 }
 
+/* PERSONAGEM */
 #batman {
     position: absolute;
     width: 50px;
@@ -29,23 +33,90 @@ body {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 80"><rect x="15" y="10" width="20" height="10" fill="black"/><rect x="10" y="20" width="30" height="40" fill="black"/><rect x="5" y="25" width="10" height="10" fill="yellow"/><rect x="35" y="25" width="10" height="10" fill="yellow"/><rect x="20" y="30" width="10" height="20" fill="yellow"/><rect x="15" y="60" width="5" height="15" fill="black"/><rect x="30" y="60" width="5" height="15" fill="black"/></svg>');
     background-repeat: no-repeat;
     z-index: 10;
+    transition: transform 0.1s;
 }
 
+#batman.jumping {
+    transform: translateY(-5px);
+}
+
+/* CENÁRIO */
 .platform {
     position: absolute;
     height: 20px;
     background-color: #444;
     border: 2px solid #666;
+    box-shadow: inset 0 0 10px #000;
 }
 
+.building {
+    position: absolute;
+    background-color: #333;
+    border: 2px solid #555;
+    box-shadow: inset 0 0 15px #000;
+}
+
+.window {
+    position: absolute;
+    width: 10px;
+    height: 15px;
+    background-color: #FFD700;
+    box-shadow: 0 0 5px #FFD700;
+}
+
+/* INIMIGOS */
 .enemy {
     position: absolute;
     width: 40px;
     height: 40px;
-    background-color: red;
+    background-color: #FF0000;
     border-radius: 50%;
+    border: 2px solid #800000;
+    box-shadow: 0 0 10px #FF0000;
+    z-index: 5;
 }
 
+.enemy::after {
+    content: "?";
+    position: absolute;
+    color: white;
+    font-weight: bold;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* BATARANGUE */
+.batarang {
+    position: absolute;
+    width: 30px;
+    height: 15px;
+    background-color: #FFD700;
+    border-radius: 5px;
+    box-shadow: 0 0 5px #FFD700, 0 0 10px #FFD700;
+    z-index: 8;
+    transform: rotate(45deg);
+}
+
+.batarang-trail {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background-color: #FFA500;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 7;
+    animation: fadeOut 0.5s forwards;
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+}
+
+/* HUD E INTERFACE */
 #hud {
     position: absolute;
     top: 10px;
@@ -53,6 +124,10 @@ body {
     color: yellow;
     font-size: 16px;
     text-shadow: 2px 2px 0 #000;
+    z-index: 20;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 5px 10px;
+    border-radius: 5px;
 }
 
 #start-screen {
@@ -61,30 +136,79 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: rgba(0, 0, 0, 0.9);
     color: yellow;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     z-index: 100;
+    text-align: center;
+}
+
+#start-title {
+    font-size: 48px;
+    text-shadow: 4px 4px 0 #000, 8px 8px 0 #FF0000;
+    margin-bottom: 10px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+#start-subtitle {
+    font-size: 24px;
+    margin-bottom: 30px;
+    text-shadow: 2px 2px 0 #000;
+}
+
+#controls {
+    margin-bottom: 30px;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 5px;
 }
 
 #start-button {
-    padding: 10px 20px;
-    background-color: yellow;
-    color: black;
+    padding: 12px 25px;
+    background-color: #FFD700;
+    color: #000;
     border: none;
     font-family: 'Courier New', monospace;
     font-weight: bold;
+    font-size: 18px;
     cursor: pointer;
-    margin-top: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px #FFD700;
+    transition: all 0.3s;
 }
 
-.batarang {
+#start-button:hover {
+    background-color: #FFA500;
+    transform: scale(1.05);
+}
+
+#game-over-screen {
     position: absolute;
-    width: 20px;
-    height: 10px;
-    background-color: black;
-    border-radius: 5px;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: yellow;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+#game-over-title {
+    font-size: 48px;
+    color: #FF0000;
+    text-shadow: 4px 4px 0 #000;
+    margin-bottom: 20px;
 }
