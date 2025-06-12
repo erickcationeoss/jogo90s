@@ -1,5 +1,6 @@
 body {
-    background: #000;
+    background: #000 url('assets/bg.jpg') no-repeat center center;
+    background-size: cover;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -7,31 +8,18 @@ body {
     margin: 0;
     font-family: 'Press Start 2P', cursive;
     color: #fff;
-}
-
-.game-container {
-    text-align: center;
-}
-
-h1 {
-    font-size: 28px;
-    margin-bottom: 20px;
-    color: #0f0; /* Verde retrô */
+    text-shadow: 2px 2px 4px #000;
 }
 
 canvas {
-    background: #111;
+    background: rgba(0, 20, 40, 0.8);
+    border: 2px solid #444;
     display: block;
     margin: 0 auto;
-    border: 2px solid #333;
 }
 
 .info {
-    margin-top: 20px;
-    font-size: 14px;
-    color: #ccc;
-}
-
-.info p {
-    margin: 5px 0;
+    margin-top: 15px;
+    font-size: 12px;
+    color: #0af;
 }

@@ -2,40 +2,50 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const scoreElement = document.getElementById("score");
 
-// Configurações
-const PLAYER_WIDTH = 50;
-const PLAYER_HEIGHT = 30;
-const BULLET_SIZE = 5;
-const ENEMY_ROWS = 4;
-const ENEMY_COLS = 8;
-const ENEMY_SIZE = 40;
+// Sprites (substitua pelas suas imagens)
+const playerImg = new Image();
+playerImg.src = "assets/player.png"; // J11
 
-// Jogador
+const enemyImg = new Image();
+enemyImg.src = "assets/enemy.png"; // F15
+
+const bulletImg = new Image();
+bulletImg.src = "assets/bullet.png";
+
+// Configurações
+const PLAYER_WIDTH = 60;
+const PLAYER_HEIGHT = 40;
+const ENEMY_WIDTH = 50;
+const ENEMY_HEIGHT = 35;
+const BULLET_SIZE = 8;
+
+// Jogador (J11)
 const player = {
     x: canvas.width / 2 - PLAYER_WIDTH / 2,
-    y: canvas.height - 50,
+    y: canvas.height - 70,
     width: PLAYER_WIDTH,
     height: PLAYER_HEIGHT,
-    speed: 8,
-    color: "#0f0"
+    speed: 8
 };
 
-// Tiros
-let bullets = [];
+// Inimigos (F15s)
 let enemies = [];
+let bullets = [];
 let score = 0;
+let enemyDirection = 1; // 1 = direita, -1 = esquerda
+let enemySpeed = 1;
 let gameOver = false;
 
-// Inicializa inimigos
+// Inicializa inimigos em formação
 function initEnemies() {
     enemies = [];
-    for (let row = 0; row < ENEMY_ROWS; row++) {
-        for (let col = 0; col < ENEMY_COLS; col++) {
+    for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 8; col++) {
             enemies.push({
-                x: col * (ENEMY_SIZE + 20) + 100,
-                y: row * (ENEMY_SIZE + 20) + 50,
-                width: ENEMY_SIZE,
-                height: ENEMY_SIZE,
+                x: col * (ENEMY_WIDTH + 30) + 100,
+                y: row * (ENEMY_HEIGHT + 20) + 50,
+                width: ENEMY_WIDTH,
+                height: ENEMY_HEIGHT,
                 alive: true
             });
         }
@@ -44,66 +54,68 @@ function initEnemies() {
 
 // Controles
 document.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowLeft" && player.x > 0) {
-        player.x -= player.speed;
-    }
-    if (e.key === "ArrowRight" && player.x < canvas.width - player.width) {
-        player.x += player.speed;
-    }
+    if (e.key === "ArrowLeft") player.x = Math.max(0, player.x - player.speed);
+    if (e.key === "ArrowRight") player.x = Math.min(canvas.width - player.width, player.x + player.speed);
     if (e.key === " " && !gameOver) {
         bullets.push({
             x: player.x + player.width / 2 - BULLET_SIZE / 2,
             y: player.y,
             width: BULLET_SIZE,
-            height: BULLET_SIZE * 2,
-            speed: 10
+            height: BULLET_SIZE * 3,
+            speed: 12
         });
     }
-    if (e.key === " " && gameOver) {
-        resetGame();
-    }
+    if (e.key === " " && gameOver) resetGame();
 });
 
-// Desenha elementos
-function drawPlayer() {
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.width, player.height);
-}
-
-function drawBullets() {
-    ctx.fillStyle = "#ff0";
-    bullets.forEach(bullet => {
-        ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
-    });
-}
-
-function drawEnemies() {
-    ctx.fillStyle = "#f00";
+// Atualiza inimigos (movimento lateral)
+function updateEnemies() {
+    let moveDown = false;
+    
+    // Verifica se precisa descer
     enemies.forEach(enemy => {
-        if (enemy.alive) {
-            ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+        if (enemy.alive && (enemy.x + enemy.width > canvas.width || enemy.x < 0)) {
+            moveDown = true;
         }
     });
+
+    // Movimentação
+    enemies.forEach(enemy => {
+        if (enemy.alive) {
+            enemy.x += enemySpeed * enemyDirection;
+            if (moveDown) enemy.y += 20;
+        }
+    });
+
+    if (moveDown) enemyDirection *= -1;
 }
 
-// Atualiza jogo
+// Loop principal
 function update() {
     if (gameOver) return;
 
-    // Limpa canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Move tiros
+    // Movimenta e desenha inimigos
+    updateEnemies();
+    enemies.forEach(enemy => {
+        if (enemy.alive) {
+            ctx.drawImage(enemyImg, enemy.x, enemy.y, enemy.width, enemy.height);
+        }
+    });
+
+    // Movimenta e desenha tiros
     bullets.forEach(bullet => {
         bullet.y -= bullet.speed;
+        ctx.drawImage(bulletImg, bullet.x, bullet.y, bullet.width, bullet.height);
     });
 
     // Remove tiros fora da tela
-    bullets = bullets.filter(bullet => bullet.y > 0);
+    bullets = bullets.filter(bullet => bullet.y > -bullet.height);
 
-    // Verifica colisões
-    bullets.forEach(bullet => {
-        enemies.forEach(enemy => {
+    // Colisões
+    bullets.forEach((bullet, bulletIndex) => {
+        enemies.forEach((enemy, enemyIndex) => {
             if (
                 enemy.alive &&
                 bullet.x < enemy.x + enemy.width &&
@@ -112,47 +124,54 @@ function update() {
                 bullet.y + bullet.height > enemy.y
             ) {
                 enemy.alive = false;
-                bullet.y = -10; // Remove o tiro
+                bullets.splice(bulletIndex, 1);
                 score += 100;
                 scoreElement.textContent = score;
             }
         });
     });
 
+    // Verifica derrota (inimigos chegarem perto)
+    if (enemies.some(enemy => enemy.alive && enemy.y + enemy.height > canvas.height - 100)) {
+        gameOver = true;
+        showMessage("MISSÃO FALHADA!");
+    }
+
     // Verifica vitória
     if (enemies.every(enemy => !enemy.alive)) {
         gameOver = true;
-        showMessage("YOU WIN!");
+        showMessage("VITÓRIA!");
     }
 
-    // Desenha tudo
-    drawEnemies();
-    drawBullets();
-    drawPlayer();
+    // Desenha jogador
+    ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
 
     requestAnimationFrame(update);
 }
 
-// Mensagens de fim de jogo
+// Mensagens
 function showMessage(text) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#0f0";
+    ctx.fillStyle = "#f00";
     ctx.font = "36px 'Press Start 2P'";
     ctx.textAlign = "center";
     ctx.fillText(text, canvas.width / 2, canvas.height / 2);
 }
 
-// Reinicia jogo
+// Reinicia
 function resetGame() {
     score = 0;
     scoreElement.textContent = "0";
     bullets = [];
     gameOver = false;
+    enemySpeed = 1;
     initEnemies();
     update();
 }
 
-// Inicia
-initEnemies();
-update();
+// Carrega imagens antes de iniciar
+window.onload = function() {
+    initEnemies();
+    update();
+};
