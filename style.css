@@ -1,0 +1,90 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #000;
+    image-rendering: pixelated;
+    font-family: 'Courier New', monospace;
+}
+
+#game-container {
+    position: relative;
+    width: 800px;
+    height: 400px;
+    margin: 20px auto;
+    border: 4px solid #333;
+    background-color: #111;
+    overflow: hidden;
+}
+
+#game-screen {
+    width: 100%;
+    height: 100%;
+    background-color: #222;
+}
+
+#batman {
+    position: absolute;
+    width: 50px;
+    height: 80px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 80"><rect x="15" y="10" width="20" height="10" fill="black"/><rect x="10" y="20" width="30" height="40" fill="black"/><rect x="5" y="25" width="10" height="10" fill="yellow"/><rect x="35" y="25" width="10" height="10" fill="yellow"/><rect x="20" y="30" width="10" height="20" fill="yellow"/><rect x="15" y="60" width="5" height="15" fill="black"/><rect x="30" y="60" width="5" height="15" fill="black"/></svg>');
+    background-repeat: no-repeat;
+    z-index: 10;
+}
+
+.platform {
+    position: absolute;
+    height: 20px;
+    background-color: #444;
+    border: 2px solid #666;
+}
+
+.enemy {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background-color: red;
+    border-radius: 50%;
+}
+
+#hud {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: yellow;
+    font-size: 16px;
+    text-shadow: 2px 2px 0 #000;
+}
+
+#start-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: yellow;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+#start-button {
+    padding: 10px 20px;
+    background-color: yellow;
+    color: black;
+    border: none;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.batarang {
+    position: absolute;
+    width: 20px;
+    height: 10px;
+    background-color: black;
+    border-radius: 5px;
+}
