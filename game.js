@@ -4,10 +4,10 @@ const scoreElement = document.getElementById("score");
 
 // Sprites (substitua pelas suas imagens)
 const playerImg = new Image();
-playerImg.src = "assets/player.png"; // J11
+playerImg.src = "playerjet.png"; // J11
 
 const enemyImg = new Image();
-enemyImg.src = "assets/enemy.png"; // F15
+enemyImg.src = "enemyjplane.png"; // F15
 
 const bulletImg = new Image();
 bulletImg.src = "assets/bullet.png";
