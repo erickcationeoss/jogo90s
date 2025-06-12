@@ -7,7 +7,7 @@ const playerImg = new Image();
 playerImg.src = "asssets/playerjet.png"; // J11
 
 const enemyImg = new Image();
-enemyImg.src = "asssets/enemyjplane.png"; // F15
+enemyImg.src = "assets/enemyjplane.png"; // F15
 
 const bulletImg = new Image();
 bulletImg.src = "assets/bullet.png";
